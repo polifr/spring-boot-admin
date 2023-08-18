@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-export default (fullName, targetLength) => {
+export default function shortenClassname(fullName, targetLength) {
   if (!fullName || fullName.length < targetLength) {
     return fullName;
   }

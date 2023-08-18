@@ -23,7 +23,7 @@ import {
   faAngleDoubleLeft,
   faCogs,
   faEye,
-  faPowerOff,
+  faPowerOff, faSitemap,
   faUndoAlt,
 } from '@fortawesome/free-solid-svg-icons';
 import { faAngleDoubleRight } from '@fortawesome/free-solid-svg-icons/faAngleDoubleRight';
@@ -103,6 +103,7 @@ library.add(
   faSignOutAlt,
   faStepBackward,
   faStepForward,
+  faSitemap,
   faTimesCircle,
   faTrash,
   faRedo,

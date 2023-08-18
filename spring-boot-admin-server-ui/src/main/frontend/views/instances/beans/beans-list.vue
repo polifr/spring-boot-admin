@@ -24,7 +24,7 @@
       >
         <div
           :key="bean.name"
-          class="flex items-center"
+          class="flex items-center gap-1"
           :class="{
             'bg-gray-50': index % 2 === 0 || showDetails[bean.name] === true,
             'px-3 py-2': showDetails[bean.name] === true,
@@ -44,8 +44,11 @@
               v-text="bean.shortType"
             />
           </div>
+          <div v-text="bean.scope" />
           <div>
-            <span v-text="bean.scope" />
+            <sba-button size="xs" @click="(e) => {e.preventDefault(); $emit('showDependencies', bean.name)}">
+              <font-awesome-icon :icon="faSitemap" />
+            </sba-button>
           </div>
         </div>
         <div
@@ -62,21 +65,28 @@
 
 <script>
 import BeansListDetails from '@/views/instances/beans/beans-list-details';
+import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
+import {faSitemap} from "@fortawesome/free-solid-svg-icons";
 
 export default {
-  components: { BeansListDetails },
+  components: {FontAwesomeIcon, BeansListDetails },
   props: {
     beans: {
       type: Array,
       default: () => [],
     },
   },
+  emits: ['showDependencies'],
   data() {
     return {
       showDetails: {},
+      faSitemap
     };
   },
   methods: {
+    faSitemap() {
+      return faSitemap
+    },
     toggle(name) {
       if (this.showDetails[name]) {
         this.showDetails = {

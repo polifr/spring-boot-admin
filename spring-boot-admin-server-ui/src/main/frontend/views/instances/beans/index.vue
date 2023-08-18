@@ -19,13 +19,13 @@
     <template #before>
       <sba-sticky-subnav>
         <sba-input
-          v-model="filter"
-          :placeholder="$t('term.filter')"
-          name="filter"
-          type="search"
+            v-model="filter"
+            :placeholder="$t('term.filter')"
+            name="filter"
+            type="search"
         >
           <template #prepend>
-            <font-awesome-icon icon="filter" />
+            <font-awesome-icon icon="filter"/>
           </template>
           <template #append>
             {{ filterResultString }}
@@ -34,23 +34,28 @@
       </sba-sticky-subnav>
     </template>
 
+    <bean-flow :elements="beanFlow" v-if="selectedBean"/>
+
     <template v-for="context in filteredContexts" :key="context.name">
       <sba-panel :header-sticks-below="'#subnavigation'" :title="context.name">
-        <beans-list :key="`${context.name}-beans`" :beans="context.beans" />
+        <beans-list :key="`${context.name}-beans`" :beans="context.beans"
+                    @show-dependencies="(name) => beanSelected(context.name, name)"/>
       </sba-panel>
     </template>
   </sba-instance-section>
 </template>
 
 <script>
-import { isEmpty } from 'lodash-es';
+import {isEmpty} from 'lodash-es';
 
 import Instance from '@/services/instance';
-import { compareBy } from '@/utils/collections';
+import {compareBy} from '@/utils/collections';
 import shortenClassname from '@/utils/shortenClassname';
-import { VIEW_GROUP } from '@/views/ViewGroup';
+import {VIEW_GROUP} from '@/views/ViewGroup';
 import BeansList from '@/views/instances/beans/beans-list';
 import SbaInstanceSection from '@/views/instances/shell/sba-instance-section';
+import BeanFlow from "@/views/instances/beans/bean-flow.vue";
+import {extractGraph} from "@/views/instances/beans/bean-flow.utils";
 
 class Bean {
   constructor(name, bean) {
@@ -79,7 +84,7 @@ const flattenContexts = (beanData) => {
 };
 
 export default {
-  components: { SbaInstanceSection, BeansList },
+  components: {BeanFlow, SbaInstanceSection, BeansList},
   props: {
     instance: {
       type: Instance,
@@ -91,6 +96,7 @@ export default {
     error: null,
     contexts: [],
     filter: '',
+    selectedBean: undefined
   }),
   computed: {
     filterResultString() {
@@ -110,19 +116,33 @@ export default {
         beans: ctx.beans.filter(filterFn).sort(compareBy((bean) => bean.name)),
       }));
     },
+    beanFlow() {
+      let selectedBean = this.selectedBean;
+      if (selectedBean) {
+        let context = this.filteredContexts.find(ctx => ctx.name === selectedBean.context);
+        return context ? extractGraph(context.beans, (bean) => bean.name === selectedBean.bean) : [];
+      }
+      return [];
+    }
   },
   created() {
     this.fetchBeans();
   },
   methods: {
+    beanSelected(ctxName, beanName) {
+      this.selectedBean = {
+        context: ctxName,
+        bean: beanName
+      };
+    },
     getFilterFn() {
       if (!this.filter) {
         return () => true;
       }
       const regex = new RegExp(this.filter, 'i');
       return (bean) =>
-        bean.name.match(regex) ||
-        (bean.aliases && bean.aliases.some((alias) => alias.match(regex)));
+          bean.name.match(regex) ||
+          (bean.aliases && bean.aliases.some((alias) => alias.match(regex)));
     },
     async fetchBeans() {
       this.error = null;
@@ -137,7 +157,7 @@ export default {
       this.isLoading = false;
     },
   },
-  install({ viewRegistry }) {
+  install({viewRegistry}) {
     viewRegistry.addView({
       name: 'instances/beans',
       parent: 'instances',
@@ -146,7 +166,7 @@ export default {
       group: VIEW_GROUP.INSIGHTS,
       component: this,
       order: 110,
-      isEnabled: ({ instance }) => instance.hasEndpoint('beans'),
+      isEnabled: ({instance}) => instance.hasEndpoint('beans'),
     });
   },
 };
