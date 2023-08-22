@@ -21,12 +21,11 @@
 </style>
 
 <script setup lang="ts">
-import {BezierEdge, Edge, Element, isEdge, isNode, Node, Position, useVueFlow, VueFlow} from '@vue-flow/core'
-import {computed, watch, watchEffect} from "vue";
+import {BezierEdge, Edge, isEdge, isNode, Node, Position, useVueFlow, VueFlow} from '@vue-flow/core'
+import {computed} from "vue";
 import dagre from "dagre"
-import {Bean} from "@/views/instances/beans/bean-flow.utils";
 
-const {onPaneReady, onUpdateNodeInternals, fitView} = useVueFlow();
+const {fitView} = useVueFlow();
 
 const dagreGraph = new dagre.graphlib.Graph()
 dagreGraph.setDefaultEdgeLabel(() => ({}))
@@ -34,7 +33,7 @@ dagreGraph.setDefaultEdgeLabel(() => ({}))
 const props = defineProps({
   elements: {
     required: true,
-    type: Array<Bean>
+    type: Array<Element & Bean>
   }
 });
 

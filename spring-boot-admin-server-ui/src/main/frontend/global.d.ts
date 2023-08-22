@@ -122,6 +122,12 @@ declare global {
     isEnabled?: () => boolean;
   }
 
+  type Bean = {
+    name: string,
+    dependencies: string[],
+    [key: string]: any
+  }
+  
   interface LinkView {
     href?: string;
     label: string;

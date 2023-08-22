@@ -1,9 +1,3 @@
-export type Bean = {
-    name: string,
-    dependencies: string[],
-    [key: string]: any
-}
-
 export function extractGraph(beans: Bean[], filterFn: (bean: Bean) => boolean = (_) => true) {
     const nodes: Bean[] = beans;
 
