@@ -4,6 +4,8 @@
     :class="cssClasses"
     :disabled="disabled === true"
     @click="$emit('click', $event)"
+    :aria-label="$attrs.ariaLabel"
+    :title="$attrs.title"
   >
     <slot />
   </button>

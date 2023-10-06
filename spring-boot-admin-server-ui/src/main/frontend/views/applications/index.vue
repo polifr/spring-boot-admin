@@ -69,10 +69,14 @@
           <template v-else>
             <div class="text-right mb-6" v-if="groupNames.length > 1">
               <sba-button-group>
-                <sba-button @click="() => groupingCriterion = 'application'">
+                <sba-button @click="() => groupingCriterion = 'application'"
+                            :aria-label="t('term.group_by.application')"
+                            :title="t('term.group_by.application')">
                   <font-awesome-icon icon="list"/>
                 </sba-button>
-                <sba-button @click="() => groupingCriterion = 'group'">
+                <sba-button @click="() => groupingCriterion = 'group'"
+                            :aria-label="t('term.group_by.group')"
+                            :title="t('term.group_by.group')">
                   <font-awesome-icon icon="expand"/>
                 </sba-button>
               </sba-button-group>
@@ -98,7 +102,7 @@
               <template #actions v-if="isGroupedByApplication">
                 <ApplicationListItemAction
                     :has-notification-filters-support="hasNotificationFiltersSupport"
-                    :item="applicationStore.findApplicationByInstanceId(group.instances[0].id)"
+                    :item="applicationStore.findApplicationByInstanceId(group.instances[0].id)!"
                     @filter-settings="toggleNotificationFilterSettings"
                 />
               </template>
@@ -150,7 +154,7 @@ import Application from '@/services/application';
 import NotificationFilter from '@/services/notification-filter';
 import {anyValueMatches} from '@/utils/collections';
 import {concatMap, mergeWith, Subject, timer} from '@/utils/rxjs';
-import {groupApplicationsBy, GroupingType} from "@/services/instanceGroupService";
+import {groupApplicationsBy, GroupingType, isGroupingType} from "@/services/instanceGroupService";
 import ApplicationStats from "@/views/applications/ApplicationStats.vue";
 import ApplicationNotificationCenter from "@/views/applications/ApplicationNotificationCenter.vue";
 import ApplicationStatusHero from "@/views/applications/ApplicationStatusHero.vue";
@@ -171,8 +175,10 @@ const route = useRoute();
 const {applications, applicationsInitialized, applicationStore} = useApplicationStore();
 const notificationCenter = useNotificationCenter({});
 const filter = ref(route.query.q?.toString());
-const expandedGroups = ref([]);
-const groupingCriterion = ref<GroupingType>('application');
+const expandedGroups = ref([route.params.selected]);
+
+const queryParamGroupBy = route.query?.groupBy?.toString();
+const groupingCriterion = ref<GroupingType>(isGroupingType(queryParamGroupBy) ? queryParamGroupBy as GroupingType : 'application');
 const notificationFilterSubject = new Subject();
 const notificationFilters = ref([]);
 const hasNotificationFiltersSupport = ref(NotificationFilter.isSupported());
@@ -220,17 +226,36 @@ watch(applicationsInitialized, (initialized) => {
   }
 })
 
+let to = {
+  name: 'applications',
+  params: {selected: props.selected},
+} as RouteLocationNamedRaw;
+
 watch(filter, (q) => {
   let to = {
-    name: 'applications',
+    name: 'wallboard',
     params: {selected: props.selected},
   } as RouteLocationNamedRaw;
-
   if (q && q.length > 0) {
     to = {
       ...to,
       query: {
+        ...route.query,
         q
+      },
+    } as RouteLocationNamedRaw;
+  }
+
+  router.replace(to);
+});
+
+watch(groupingCriterion, (groupBy) => {
+  if (groupBy && groupBy.length > 0) {
+    to = {
+      ...to,
+      query: {
+        ...route.query,
+        groupBy
       },
     } as RouteLocationNamedRaw;
   }
