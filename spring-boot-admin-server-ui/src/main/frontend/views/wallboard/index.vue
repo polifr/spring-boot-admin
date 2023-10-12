@@ -145,7 +145,7 @@ export default {
     const groupingCriterion = ref<GroupingType>(isGroupingType(queryParamGroupBy) ? queryParamGroupBy as GroupingType : 'application');
     const groupNames = computed(() => {
       return [...new Set(applications.value.flatMap(application => application.instances)
-          .map(instance => instance.registration.metadata?.['group'] ?? "Ungrouped"))];
+          .map(instance => instance.registration?.metadata?.['group'] ?? "Ungrouped"))];
     });
 
     watch(groupingCriterion, (groupBy) => {
