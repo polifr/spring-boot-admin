@@ -70,12 +70,10 @@
             <div class="text-right mb-6" v-if="groupNames.length > 1">
               <sba-button-group>
                 <sba-button @click="() => groupingCriterion = 'application'"
-                            :aria-label="t('term.group_by.application')"
                             :title="t('term.group_by.application')">
                   <font-awesome-icon icon="list"/>
                 </sba-button>
                 <sba-button @click="() => groupingCriterion = 'group'"
-                            :aria-label="t('term.group_by.group')"
                             :title="t('term.group_by.group')">
                   <font-awesome-icon icon="expand"/>
                 </sba-button>

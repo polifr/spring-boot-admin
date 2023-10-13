@@ -52,13 +52,11 @@
         <sba-button-group>
           <sba-button size="base"
                       @click="() => groupingCriterion = 'application'"
-                      :aria-label="t('term.group_by.application')"
                       :title="t('term.group_by.application')">
             <font-awesome-icon icon="list"/>
           </sba-button>
           <sba-button size="base"
                       @click="() => groupingCriterion = 'group'"
-                      :aria-label="t('term.group_by.group')"
                       :title="t('term.group_by.group')">
             <font-awesome-icon icon="expand"/>
           </sba-button>
