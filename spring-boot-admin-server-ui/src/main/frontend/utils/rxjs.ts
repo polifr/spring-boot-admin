@@ -15,31 +15,7 @@
  */
 import { defer, tap } from 'rxjs';
 
-export {
-  of,
-  defer,
-  concat,
-  catchError,
-  throwError,
-  EMPTY,
-  from,
-  timer,
-  Observable,
-  Subject,
-  animationFrameScheduler,
-  concatMap,
-  delay,
-  debounceTime,
-  mergeWith,
-  map,
-  retryWhen,
-  tap,
-  filter,
-  concatAll,
-  ignoreElements,
-  bufferTime,
-  finalize,
-} from 'rxjs';
+export * from 'rxjs';
 
 export const doOnSubscribe = (cb) => (source) =>
   defer(() => {
