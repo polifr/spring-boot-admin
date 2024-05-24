@@ -94,27 +94,26 @@
         :items="applications"
         @click="select"
       >
-        <template #item="{ item }">
-          <div :key="item.name" class="hex__body application">
-            <div class="application__group" v-text="item.group" />
+        <template #item="{ item: application }">
+          <div :key="application.name" class="hex__body application">
+            <div class="application__group" v-text="application.group" />
             <div class="application__status-indicator" />
-            <div
-              v-if="routerState.sortBy === 'application'"
-              class="application__header application__time-ago is-muted"
-            >
-              <sba-time-ago :date="item.statusTimestamp" />
+            <div class="application__header application__time-ago is-muted">
+              <sba-time-ago :date="application.statusTimestamp" />
             </div>
             <div class="application__body">
-              <h1 class="application__name" v-text="t(item.name)" />
+              <h1 class="application__name" v-text="application.name" />
               <p
-                v-if="item.instances"
+                v-if="application.instances"
                 class="application__instances is-muted"
-                v-text="t('wallboard.instances_count', item.instances.length)"
+                v-text="
+                  t('wallboard.instances_count', application.instances.length)
+                "
               />
             </div>
             <h2
               class="application__footer application__version"
-              v-text="item.buildVersion"
+              v-text="application.buildVersion"
             />
           </div>
         </template>
@@ -141,8 +140,6 @@ export default {
 
     const routerState = useRouterState({
       termFilter: '',
-      wordWrap: true,
-      statusFilter: 'none',
       sortBy: 'name',
     });
 
@@ -235,13 +232,11 @@ export default {
       if (application.status === HealthStatus.OFFLINE) {
         return 'down';
       }
-      if (application.status === HealthStatus.UNKNOWN) {
-        return 'unknown';
-      }
+
       return 'unknown';
     },
     select(application: Application) {
-      if (application.instances.length === 1) {
+      if (application.instances?.length === 1) {
         this.$router.push({
           name: 'instances/details',
           params: { instanceId: application.instances[0].id },
