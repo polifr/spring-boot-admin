@@ -17,97 +17,102 @@
 <template>
   <section class="wallboard section">
     <div
-        class="flex gap-2 justify-end absolute w-full md:w-[28rem] items-stretch top-14 right-0 bg-black/20 py-3 px-4 rounded-bl"
+      class="flex gap-2 justify-end absolute w-full md:w-[28rem] items-stretch top-14 right-0 bg-black/20 py-3 px-4 rounded-bl"
     >
       <sba-input
-          v-model="termFilter"
-          class="flex-1"
-          :placeholder="$t('term.filter')"
-          name="filter"
-          type="search"
+        v-model="termFilter"
+        class="flex-1"
+        :placeholder="$t('term.filter')"
+        name="filter"
+        type="search"
       >
         <template #prepend>
-          <font-awesome-icon icon="filter"/>
+          <font-awesome-icon icon="filter" />
         </template>
       </sba-input>
 
       <select
-          aria-label="status-filter"
-          v-if="healthStatus.size > 1"
-          v-model="statusFilter"
-          class="relative focus:z-10 focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded"
+        aria-label="status-filter"
+        v-if="healthStatus.size > 1"
+        v-model="statusFilter"
+        class="relative focus:z-10 focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded"
       >
-        <option selected value="none" v-text="$t('term.all')"/>
+        <option selected value="none" v-text="$t('term.all')" />
         <optgroup :label="t('health.label')">
           <option
-              v-for="status in healthStatus"
-              :key="status"
-              :value="status"
-              v-text="t('health.status.' + status)"
+            v-for="status in healthStatus"
+            :key="status"
+            :value="status"
+            v-text="t('health.status.' + status)"
           />
         </optgroup>
       </select>
 
       <div class="text-right rounded h-full" v-if="groupNames.length > 1">
         <sba-button-group>
-          <sba-button size="base"
-                      @click="() => groupingCriterion = 'application'"
-                      :title="t('term.group_by.application')">
-            <font-awesome-icon icon="list"/>
+          <sba-button
+            size="base"
+            @click="() => (groupingCriterion = 'application')"
+            :title="t('term.group_by.application')"
+          >
+            <font-awesome-icon icon="list" />
           </sba-button>
-          <sba-button size="base"
-                      @click="() => groupingCriterion = 'group'"
-                      :title="t('term.group_by.group')">
-            <font-awesome-icon icon="expand"/>
+          <sba-button
+            size="base"
+            @click="() => (groupingCriterion = 'group')"
+            :title="t('term.group_by.group')"
+          >
+            <font-awesome-icon icon="expand" />
           </sba-button>
         </sba-button-group>
       </div>
     </div>
 
     <sba-alert
-        v-if="error"
-        :error="error"
-        :title="t('applications.server_connection_failed')"
-        class="my-0 fixed w-full"
-        severity="WARN"
+      v-if="error"
+      :error="error"
+      :title="t('applications.server_connection_failed')"
+      class="my-0 fixed w-full"
+      severity="WARN"
     />
 
-    <sba-loading-spinner v-if="!applicationsInitialized"/>
+    <sba-loading-spinner v-if="!applicationsInitialized" />
 
     <template v-if="applicationsInitialized">
       <div
-          v-if="termFilter.length > 0 && applications.length === 0"
-          class="flex w-full h-full items-center text-center text-white text-xl"
-          v-text="
+        v-if="termFilter.length > 0 && applications.length === 0"
+        class="flex w-full h-full items-center text-center text-white text-xl"
+        v-text="
           t('term.no_results_for_term', {
             term: termFilter,
           })
         "
       />
       <hex-mesh
-          v-if="applicationsInitialized"
-          :class-for-item="classForApplication"
-          :items="applications"
-          @click="select"
+        v-if="applicationsInitialized"
+        :class-for-item="classForApplication"
+        :items="applications"
+        @click="select"
       >
         <template #item="{ item }">
           <div :key="item.name" class="hex__body application">
-            <div class="application__status-indicator"/>
-            <div class="application__header application__time-ago is-muted" v-if="groupingCriterion === 'application'">
-              <sba-time-ago :date="item.statusTimestamp"/>
+            <div class="application__status-indicator" />
+            <div
+              class="application__header application__time-ago is-muted"
+              v-if="groupingCriterion === 'application'"
+            >
+              <sba-time-ago :date="item.statusTimestamp" />
             </div>
             <div class="application__body">
-              <h1 class="application__name" v-text="t(item.name)"/>
+              <h1 class="application__name" v-text="t(item.name)" />
               <p
-                  class="application__instances is-muted"
-                  v-text="
-                  t('wallboard.instances_count', item.instances.length)
-                "
+                class="application__instances is-muted"
+                v-text="t('wallboard.instances_count', item.instances.length)"
               />
             </div>
             <h2
-                class="application__footer application__version"
-                v-text="item.buildVersion"
+              class="application__footer application__version"
+              v-text="item.buildVersion"
             />
           </div>
         </template>
@@ -118,32 +123,49 @@
 
 <script lang="ts">
 import Fuse from 'fuse.js';
-import {computed, ref, watch} from 'vue';
-import {useI18n} from 'vue-i18n';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { RouteLocationNamedRaw, useRoute, useRouter } from 'vue-router';
 
-import {HealthStatus} from '@/HealthStatus';
-import {useApplicationStore} from '@/composables/useApplicationStore';
+import { HealthStatus } from '@/HealthStatus';
+import { useApplicationStore } from '@/composables/useApplicationStore';
+import {
+  GroupingType,
+  InstancesListItem,
+  groupApplicationsBy,
+  isGroupingType,
+} from '@/services/instanceGroupService';
 import hexMesh from '@/views/wallboard/hex-mesh';
-import {groupApplicationsBy, GroupingType, InstancesListItem, isGroupingType} from "@/services/instanceGroupService";
-import {RouteLocationNamedRaw, useRoute, useRouter} from "vue-router";
 
 export default {
-  components: {hexMesh},
+  components: { hexMesh },
   setup() {
-    const {t} = useI18n();
+    const { t } = useI18n();
     const route = useRoute();
     const router = useRouter();
-    const {applications, applicationsInitialized, error} = useApplicationStore();
+    const { applications, applicationsInitialized, error } =
+      useApplicationStore();
 
     const termFilter = ref('');
     const statusFilter = ref(route.query?.status?.toString() ?? 'none');
 
-
     const queryParamGroupBy = route.query?.groupBy?.toString();
-    const groupingCriterion = ref<GroupingType>(isGroupingType(queryParamGroupBy) ? queryParamGroupBy as GroupingType : 'application');
+    const groupingCriterion = ref<GroupingType>(
+      isGroupingType(queryParamGroupBy)
+        ? (queryParamGroupBy as GroupingType)
+        : 'application',
+    );
     const groupNames = computed(() => {
-      return [...new Set(applications.value.flatMap(application => application.instances)
-          .map(instance => instance.registration?.metadata?.['group'] ?? "Ungrouped"))];
+      return [
+        ...new Set(
+          applications.value
+            .flatMap((application) => application.instances)
+            .map(
+              (instance) =>
+                instance.registration?.metadata?.['group'] ?? 'Ungrouped',
+            ),
+        ),
+      ];
     });
 
     watch(groupingCriterion, (groupBy) => {
@@ -152,7 +174,7 @@ export default {
           name: 'wallboard',
           query: {
             ...route.query,
-            groupBy
+            groupBy,
           },
         } as RouteLocationNamedRaw;
         router.replace(to);
@@ -165,7 +187,7 @@ export default {
           name: 'wallboard',
           query: {
             ...route.query,
-            status: _statusFilter
+            status: _statusFilter,
           },
         } as RouteLocationNamedRaw;
         router.replace(to);
@@ -173,13 +195,13 @@ export default {
     });
 
     const fuse = computed(
-        () =>
-            new Fuse(applications.value, {
-              includeScore: true,
-              useExtendedSearch: true,
-              threshold: 0.25,
-              keys: ['name', 'buildVersion', 'instances.name', 'instances.id'],
-            }),
+      () =>
+        new Fuse(applications.value, {
+          includeScore: true,
+          useExtendedSearch: true,
+          threshold: 0.25,
+          keys: ['name', 'buildVersion', 'instances.name', 'instances.id'],
+        }),
     );
 
     const groupedApplications = computed(() => {
@@ -194,7 +216,7 @@ export default {
       function filterByStatus(result) {
         if (statusFilter.value !== 'none') {
           return result.filter(
-              (application) => application.status === statusFilter.value,
+            (application) => application.status === statusFilter.value,
           );
         }
 
@@ -208,7 +230,9 @@ export default {
     });
 
     const healthStatus = computed(() => {
-      return new Set(applications.value.map((application) => application.status));
+      return new Set(
+        applications.value.map((application) => application.status),
+      );
     });
 
     return {
@@ -253,20 +277,20 @@ export default {
       if (instancesListItem.instances.length === 1) {
         return this.$router.push({
           name: 'instances/details',
-          params: {instanceId: instancesListItem.instances[0].id},
+          params: { instanceId: instancesListItem.instances[0].id },
         });
       } else {
         this.$router.push({
           name: 'applications',
-          params: {selected: instancesListItem.name},
+          params: { selected: instancesListItem.name },
           query: {
-            groupBy: this.groupingCriterion
-          }
+            groupBy: this.groupingCriterion,
+          },
         });
       }
     },
   },
-  install({viewRegistry}) {
+  install({ viewRegistry }) {
     viewRegistry.addView({
       path: '/wallboard',
       name: 'wallboard',
