@@ -324,7 +324,6 @@ export default {
   width: 100%;
   padding: 2.5%;
   color: #fff;
-  word-break: break-word;
   font-size: 2em;
   font-weight: 600;
   line-height: 1.125;
