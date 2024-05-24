@@ -21,6 +21,11 @@
       :width="meshWidth"
       xmlns="http://www.w3.org/2000/svg"
     >
+      <defs>
+        <clipPath id="hex-clip">
+          <polygon :points="hexPath" />
+        </clipPath>
+      </defs>
       <template v-for="row in rows">
         <g
           v-for="col in cols + (row % 2 ? 0 : -1)"
@@ -47,35 +52,27 @@
   </div>
 </template>
 
-<script lang="ts">
-import { PropType, ref } from 'vue';
+<script>
+import { ref } from 'vue';
 
 import onResize from '@/directives/on-resize';
-import Instance from '@/services/instance';
 import { calcLayout } from '@/views/wallboard/utils';
-
-type InstancesListItem = {
-  name: string;
-  statusKey?: string;
-  status?: string;
-  instances: Instance[];
-};
 
 export default {
   directives: { onResize },
   props: {
     items: {
-      type: Object as PropType<InstancesListItem[]>,
+      type: Array,
       default: () => [],
     },
     classForItem: {
-      type: Object as PropType<Function>,
-      default: () => () => void 0,
+      type: Function,
+      default: () => void 0,
     },
   },
   emits: ['click'],
   setup() {
-    const root = ref<HTMLElement | null>(null);
+    const root = ref(null);
 
     return {
       root,
@@ -110,9 +107,7 @@ export default {
   },
   watch: {
     sideLength(newVal) {
-      if (this.root) {
-        this.root.style.fontSize = `${newVal / 9.5}px`;
-      }
+      this.root.style['font-size'] = `${newVal / 9.5}px`;
     },
     itemCount: {
       handler: 'updateLayout',
@@ -120,18 +115,18 @@ export default {
     },
   },
   methods: {
-    translate(col: number, row: number) {
+    translate(col, row) {
       const x = (col - 1) * this.hexWidth + (row % 2 ? 0 : this.hexWidth / 2);
       const y = (row - 1) * this.sideLength * 1.5;
       return `translate(${x},${y})`;
     },
-    item(col: number, row: number): InstancesListItem {
+    item(col, row) {
       const rowOffset =
         (row - 1) * this.cols - Math.max(Math.floor((row - 1) / 2), 0);
       const index = rowOffset + col - 1;
       return this.items[index];
     },
-    point(i: number): string {
+    point(i) {
       const innerSideLength = this.sideLength * 0.95;
       const marginTop = this.hexHeight / 2;
       const marginLeft = this.hexWidth / 2;
@@ -139,7 +134,7 @@ export default {
         marginLeft + innerSideLength * Math.cos(((1 + i * 2) * Math.PI) / 6)
       },${marginTop + innerSideLength * Math.sin(((1 + i * 2) * Math.PI) / 6)}`;
     },
-    click(event: MouseEvent, col: number, row: number) {
+    click(event, col, row) {
       const item = this.item(col, row);
       if (item) {
         this.$emit('click', item, event);
@@ -158,9 +153,9 @@ export default {
         this.sideLength = layout.sideLength;
       }
     },
-    onResize(entries: Event[]) {
+    onResize(entries) {
       for (let e of entries) {
-        if ((e.target as HTMLElement) === this.root) {
+        if (e.target === this.root) {
           this.updateLayout();
         }
       }
@@ -187,8 +182,7 @@ export default {
 }
 
 .hex polygon {
-  fill: var(--color, transparent);
-  stroke: var(--color, transparent);
+  fill: transparent;
   transition: all ease-out 250ms;
 }
 

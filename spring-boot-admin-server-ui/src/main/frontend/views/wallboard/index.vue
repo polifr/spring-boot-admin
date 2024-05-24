@@ -17,10 +17,10 @@
 <template>
   <section class="wallboard section">
     <div
-      class="flex gap-2 justify-end absolute w-full md:w-[28rem] items-stretch top-14 right-0 bg-black/20 py-3 px-4 rounded-bl"
+      class="flex gap-2 justify-end absolute w-full md:w-[28rem] top-14 right-0 bg-black/20 py-3 px-4 rounded-bl"
     >
       <sba-input
-        v-model="termFilter"
+        v-model="routerState.termFilter"
         class="flex-1"
         :placeholder="$t('term.filter')"
         name="filter"
@@ -33,7 +33,7 @@
 
       <select
         v-if="healthStatus.size > 1"
-        v-model="statusFilter"
+        v-model="routerState.statusFilter"
         aria-label="status-filter"
         class="relative focus:z-10 focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded"
       >
@@ -52,14 +52,14 @@
         <sba-button-group>
           <sba-button
             size="base"
-            @click="() => (sortingCriterion = 'name')"
+            @click="() => (routerState.sortBy = 'name')"
             :title="t('term.group_by.application')"
           >
             <font-awesome-icon icon="list" />
           </sba-button>
           <sba-button
             size="base"
-            @click="() => (sortingCriterion = 'group')"
+            @click="() => (routerState.sortBy = 'group')"
             :title="t('term.group_by.group')"
           >
             <font-awesome-icon icon="expand" />
@@ -80,11 +80,11 @@
 
     <template v-if="applicationsInitialized">
       <div
-        v-if="termFilter.length > 0 && applications.length === 0"
+        v-if="routerState.termFilter.length > 0 && applications.length === 0"
         class="flex w-full h-full items-center text-center text-white text-xl"
         v-text="
           t('term.no_results_for_term', {
-            term: termFilter,
+            term: routerState.termFilter,
           })
         "
       />
@@ -99,7 +99,7 @@
             <div class="application__group" v-text="item.group" />
             <div class="application__status-indicator" />
             <div
-              v-if="sortingCriterion === 'application'"
+              v-if="routerState.sortBy === 'application'"
               class="application__header application__time-ago is-muted"
             >
               <sba-time-ago :date="item.statusTimestamp" />
@@ -125,29 +125,29 @@
 
 <script lang="ts">
 import Fuse from 'fuse.js';
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { RouteLocationNamedRaw, useRoute, useRouter } from 'vue-router';
 
 import { HealthStatus } from '@/HealthStatus';
 import { useApplicationStore } from '@/composables/useApplicationStore';
-import sbaConfig from '@/sba-config';
 import Application from '@/services/application';
-import hexMesh from '@/views/wallboard/hex-mesh';
+import { useRouterState } from '@/utils/useRouterState';
+import hexMesh from '@/views/wallboard/hex-mesh.vue';
 
 export default {
   components: { hexMesh },
   setup() {
     const { t } = useI18n();
-    const route = useRoute();
-    const router = useRouter();
+
+    const routerState = useRouterState({
+      termFilter: '',
+      wordWrap: true,
+      statusFilter: 'none',
+      sortBy: 'name',
+    });
+
     const { applications, applicationsInitialized, error } =
       useApplicationStore();
-
-    const termFilter = ref('');
-    const statusFilter = ref(route.query?.status?.toString() ?? 'none');
-
-    const sortingCriterion = ref(route.query?.sortBy?.toString() ?? 'name');
 
     const groupNames = computed(() => {
       return [
@@ -162,55 +162,30 @@ export default {
       ];
     });
 
-    watch(sortingCriterion, (sortBy) => {
-      if (sortBy) {
-        const to = {
-          name: 'wallboard',
-          query: {
-            ...route.query,
-            sortBy,
-          },
-        } as RouteLocationNamedRaw;
-        router.replace(to);
-      }
-    });
-
-    watch(statusFilter, (_statusFilter) => {
-      if (_statusFilter && _statusFilter.length > 0) {
-        const to = {
-          name: 'wallboard',
-          query: {
-            ...route.query,
-            status: _statusFilter,
-          },
-        } as RouteLocationNamedRaw;
-        router.replace(to);
-      }
-    });
-
     const fuse = computed(
       () =>
-        new Fuse(applications.value, {
+        new Fuse<Application>(applications.value, {
           includeScore: true,
           useExtendedSearch: true,
-          threshold: 0.25,
+          threshold: 0.4,
           keys: ['name', 'buildVersion', 'instances.name', 'instances.id'],
         }),
     );
 
-    const groupedApplications = computed(() => {
-      function filterByTerm() {
-        if (termFilter.value.length > 0) {
-          return fuse.value.search(termFilter.value).map((sr) => sr.item);
+    const filteredApplications = computed(() => {
+      function filterByTerm(): Application[] {
+        if (routerState.termFilter.length > 0) {
+          return fuse.value.search(routerState.termFilter).map((sr) => sr.item);
         } else {
           return applications.value;
         }
       }
 
-      function filterByStatus(result) {
-        if (statusFilter.value !== 'none') {
+      function filterByStatus(result: Application[]) {
+        if (routerState.statusFilter !== 'none') {
           return result.filter(
-            (application) => application.status === statusFilter.value,
+            (application: Application) =>
+              application.status === routerState.statusFilter,
           );
         }
 
@@ -220,7 +195,7 @@ export default {
       let result = filterByTerm();
       result = filterByStatus(result);
 
-      return sortApplicationsBy(result, sortingCriterion.value);
+      return sortApplicationsBy(result, routerState.sortBy);
     });
 
     const healthStatus = computed(() => {
@@ -230,56 +205,51 @@ export default {
     });
 
     return {
-      applications: groupedApplications,
-      sortingCriterion,
-      groupNames,
+      applications: filteredApplications,
       applicationsInitialized,
       error,
       t,
-      termFilter,
-      statusFilter,
       healthStatus,
+      routerState,
+      groupNames,
     };
   },
   methods: {
-    classForApplication(instancesListItem: Application) {
-      if (!instancesListItem) {
+    classForApplication(application: Application) {
+      if (!application) {
         return null;
       }
 
-      if (instancesListItem.status === HealthStatus.UP) {
+      if (application.status === HealthStatus.UP) {
         return 'up';
       }
-      if (instancesListItem.status === HealthStatus.RESTRICTED) {
+      if (application.status === HealthStatus.RESTRICTED) {
         return 'restricted';
       }
-      if (instancesListItem.status === HealthStatus.DOWN) {
+      if (application.status === HealthStatus.DOWN) {
         return 'down';
       }
-      if (instancesListItem.status === HealthStatus.OUT_OF_SERVICE) {
+      if (application.status === HealthStatus.OUT_OF_SERVICE) {
         return 'down';
       }
-      if (instancesListItem.status === HealthStatus.OFFLINE) {
+      if (application.status === HealthStatus.OFFLINE) {
         return 'down';
       }
-      if (instancesListItem.status === HealthStatus.UNKNOWN) {
+      if (application.status === HealthStatus.UNKNOWN) {
         return 'unknown';
       }
       return 'unknown';
     },
-    select(instancesListItem: Application) {
-      if (instancesListItem.instances.length === 1) {
-        return this.$router.push({
+    select(application: Application) {
+      if (application.instances.length === 1) {
+        this.$router.push({
           name: 'instances/details',
-          params: { instanceId: instancesListItem.instances[0].id },
+          params: { instanceId: application.instances[0].id },
         });
       } else {
         this.$router.push({
           name: 'applications',
-          params: { selected: instancesListItem.name },
-          query: {
-            sortBy: this.sortingCriterion,
-          },
+          params: { selected: application.name },
         });
       }
     },
@@ -299,7 +269,7 @@ function sortApplicationsBy(
   applications: Application[],
   sortingCriterion: string,
 ) {
-  const items = applications.flatMap((application) => {
+  const items = applications.flatMap((application: Application) => {
     if (sortingCriterion === 'group') {
       return application.instances.map((instance) => ({
         ...instance,
@@ -372,13 +342,13 @@ function sortApplicationsBy(
   transform: rotate(-30deg);
   text-align: center;
   width: 55%;
-  color: var(--color);
   text-transform: uppercase;
   font-weight: 700;
 }
 
-.up {
-  --color: theme('colors.green.400');
+.up > polygon {
+  stroke: theme('colors.green.400');
+  fill: theme('colors.green.400');
 }
 
 .down > polygon,
@@ -386,16 +356,6 @@ function sortApplicationsBy(
   stroke: theme('colors.red.400');
   fill: theme('colors.red.400');
   stroke-width: 2;
-}
-
-.unknown > polygon {
-  stroke: theme('colors.gray.400');
-  fill: theme('colors.gray.400');
-}
-
-.restricted > polygon {
-  stroke: theme('colors.yellow.400');
-  fill: theme('colors.yellow.400');
 }
 
 .hex .hex__body::after {
@@ -427,5 +387,10 @@ function sortApplicationsBy(
 .hex.unknown .hex__body::after {
   content: '?';
   color: theme('colors.gray.500');
+}
+
+.restricted > polygon {
+  stroke: theme('colors.yellow.400');
+  fill: theme('colors.yellow.400');
 }
 </style>
