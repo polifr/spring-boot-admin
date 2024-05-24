@@ -32,9 +32,9 @@
       </sba-input>
 
       <select
-        aria-label="status-filter"
         v-if="healthStatus.size > 1"
         v-model="statusFilter"
+        aria-label="status-filter"
         class="relative focus:z-10 focus:ring-indigo-500 focus:border-indigo-500 block sm:text-sm border-gray-300 rounded"
       >
         <option selected value="none" v-text="$t('term.all')" />
@@ -52,14 +52,14 @@
         <sba-button-group>
           <sba-button
             size="base"
-            @click="() => (groupingCriterion = 'application')"
+            @click="() => (sortingCriterion = 'name')"
             :title="t('term.group_by.application')"
           >
             <font-awesome-icon icon="list" />
           </sba-button>
           <sba-button
             size="base"
-            @click="() => (groupingCriterion = 'group')"
+            @click="() => (sortingCriterion = 'group')"
             :title="t('term.group_by.group')"
           >
             <font-awesome-icon icon="expand" />
@@ -96,16 +96,18 @@
       >
         <template #item="{ item }">
           <div :key="item.name" class="hex__body application">
+            <div class="application__group" v-text="item.group" />
             <div class="application__status-indicator" />
             <div
+              v-if="sortingCriterion === 'application'"
               class="application__header application__time-ago is-muted"
-              v-if="groupingCriterion === 'application'"
             >
               <sba-time-ago :date="item.statusTimestamp" />
             </div>
             <div class="application__body">
               <h1 class="application__name" v-text="t(item.name)" />
               <p
+                v-if="item.instances"
                 class="application__instances is-muted"
                 v-text="t('wallboard.instances_count', item.instances.length)"
               />
@@ -129,12 +131,8 @@ import { RouteLocationNamedRaw, useRoute, useRouter } from 'vue-router';
 
 import { HealthStatus } from '@/HealthStatus';
 import { useApplicationStore } from '@/composables/useApplicationStore';
-import {
-  GroupingType,
-  InstancesListItem,
-  groupApplicationsBy,
-  isGroupingType,
-} from '@/services/instanceGroupService';
+import sbaConfig from '@/sba-config';
+import Application from '@/services/application';
 import hexMesh from '@/views/wallboard/hex-mesh';
 
 export default {
@@ -149,15 +147,11 @@ export default {
     const termFilter = ref('');
     const statusFilter = ref(route.query?.status?.toString() ?? 'none');
 
-    const queryParamGroupBy = route.query?.groupBy?.toString();
-    const groupingCriterion = ref<GroupingType>(
-      isGroupingType(queryParamGroupBy)
-        ? (queryParamGroupBy as GroupingType)
-        : 'application',
-    );
+    const sortingCriterion = ref(route.query?.sortBy?.toString() ?? 'name');
+
     const groupNames = computed(() => {
       return [
-        ...new Set(
+        ...new Set<string>(
           applications.value
             .flatMap((application) => application.instances)
             .map(
@@ -168,13 +162,13 @@ export default {
       ];
     });
 
-    watch(groupingCriterion, (groupBy) => {
-      if (groupBy && groupBy.length > 0) {
+    watch(sortingCriterion, (sortBy) => {
+      if (sortBy) {
         const to = {
           name: 'wallboard',
           query: {
             ...route.query,
-            groupBy,
+            sortBy,
           },
         } as RouteLocationNamedRaw;
         router.replace(to);
@@ -226,7 +220,7 @@ export default {
       let result = filterByTerm();
       result = filterByStatus(result);
 
-      return groupApplicationsBy(result, groupingCriterion.value);
+      return sortApplicationsBy(result, sortingCriterion.value);
     });
 
     const healthStatus = computed(() => {
@@ -237,7 +231,7 @@ export default {
 
     return {
       applications: groupedApplications,
-      groupingCriterion,
+      sortingCriterion,
       groupNames,
       applicationsInitialized,
       error,
@@ -248,7 +242,7 @@ export default {
     };
   },
   methods: {
-    classForApplication(instancesListItem: InstancesListItem) {
+    classForApplication(instancesListItem: Application) {
       if (!instancesListItem) {
         return null;
       }
@@ -273,7 +267,7 @@ export default {
       }
       return 'unknown';
     },
-    select(instancesListItem: InstancesListItem) {
+    select(instancesListItem: Application) {
       if (instancesListItem.instances.length === 1) {
         return this.$router.push({
           name: 'instances/details',
@@ -284,7 +278,7 @@ export default {
           name: 'applications',
           params: { selected: instancesListItem.name },
           query: {
-            groupBy: this.groupingCriterion,
+            sortBy: this.sortingCriterion,
           },
         });
       }
@@ -300,6 +294,31 @@ export default {
     });
   },
 };
+
+function sortApplicationsBy(
+  applications: Application[],
+  sortingCriterion: string,
+) {
+  const items = applications.flatMap((application) => {
+    if (sortingCriterion === 'group') {
+      return application.instances.map((instance) => ({
+        ...instance,
+        status: application.status,
+        name: application.name,
+        group: instance.registration?.metadata?.['group'] ?? 'Ungrouped',
+      }));
+    } else {
+      return [application];
+    }
+  });
+  return items.sort((a: any, b: any) => {
+    if (sortingCriterion === 'group') {
+      return a.group.localeCompare(b.group);
+    } else {
+      return a.name.localeCompare(b.name);
+    }
+  });
+}
 </script>
 
 <style lang="postcss">
@@ -345,9 +364,21 @@ export default {
   margin-top: 0.5em;
 }
 
-.up > polygon {
-  stroke: theme('colors.green.400');
-  fill: theme('colors.green.400');
+.wallboard .application__group {
+  position: absolute;
+  top: 15%;
+  left: 0;
+  font-size: 40%;
+  transform: rotate(-30deg);
+  text-align: center;
+  width: 55%;
+  color: var(--color);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.up {
+  --color: theme('colors.green.400');
 }
 
 .down > polygon,

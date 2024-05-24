@@ -17,29 +17,29 @@
 <template>
   <div ref="root" v-on-resize="onResize" class="hex-mesh">
     <svg
-        :height="meshHeight"
-        :width="meshWidth"
-        xmlns="http://www.w3.org/2000/svg"
+      :height="meshHeight"
+      :width="meshWidth"
+      xmlns="http://www.w3.org/2000/svg"
     >
       <template v-for="row in rows">
         <g
-            v-for="col in cols + (row % 2 ? 0 : -1)"
-            :key="`${col}-${row}`"
-            :class="classForItem(item(col, row))"
-            :transform="translate(col, row)"
-            class="hex"
-            @click="click($event, col, row)"
+          v-for="col in cols + (row % 2 ? 0 : -1)"
+          :key="`${col}-${row}`"
+          :class="classForItem(item(col, row))"
+          :transform="translate(col, row)"
+          class="hex"
+          @click="click($event, col, row)"
         >
-          <polygon :points="hexPath"/>
+          <polygon :points="hexPath" />
           <foreignObject
-              v-if="item(col, row)"
-              :height="hexHeight"
-              :width="hexWidth"
-              style="pointer-events: none"
-              x="0"
-              y="0"
+            v-if="item(col, row)"
+            :height="hexHeight"
+            :width="hexWidth"
+            style="pointer-events: none"
+            x="0"
+            y="0"
           >
-            <slot :item="item(col, row)" name="item"/>
+            <slot :item="item(col, row)" name="item" />
           </foreignObject>
         </g>
       </template>
@@ -48,14 +48,21 @@
 </template>
 
 <script lang="ts">
-import {PropType, ref} from 'vue';
+import { PropType, ref } from 'vue';
 
 import onResize from '@/directives/on-resize';
-import {calcLayout} from '@/views/wallboard/utils';
-import {InstancesListItem} from "@/services/instanceGroupService";
+import Instance from '@/services/instance';
+import { calcLayout } from '@/views/wallboard/utils';
+
+type InstancesListItem = {
+  name: string;
+  statusKey?: string;
+  status?: string;
+  instances: Instance[];
+};
 
 export default {
-  directives: {onResize},
+  directives: { onResize },
   props: {
     items: {
       type: Object as PropType<InstancesListItem[]>,
@@ -85,7 +92,7 @@ export default {
     },
     hexPath() {
       return `${this.point(0)} ${this.point(1)} ${this.point(2)} ${this.point(
-          3
+        3,
       )} ${this.point(4)} ${this.point(5)}`;
     },
     hexHeight() {
@@ -120,7 +127,7 @@ export default {
     },
     item(col: number, row: number): InstancesListItem {
       const rowOffset =
-          (row - 1) * this.cols - Math.max(Math.floor((row - 1) / 2), 0);
+        (row - 1) * this.cols - Math.max(Math.floor((row - 1) / 2), 0);
       const index = rowOffset + col - 1;
       return this.items[index];
     },
@@ -129,7 +136,7 @@ export default {
       const marginTop = this.hexHeight / 2;
       const marginLeft = this.hexWidth / 2;
       return `${
-          marginLeft + innerSideLength * Math.cos(((1 + i * 2) * Math.PI) / 6)
+        marginLeft + innerSideLength * Math.cos(((1 + i * 2) * Math.PI) / 6)
       },${marginTop + innerSideLength * Math.sin(((1 + i * 2) * Math.PI) / 6)}`;
     },
     click(event: MouseEvent, col: number, row: number) {
@@ -142,9 +149,9 @@ export default {
       if (this.root) {
         const boundingClientRect = this.root.getBoundingClientRect();
         const layout = calcLayout(
-            this.itemCount,
-            boundingClientRect.width,
-            boundingClientRect.height
+          this.itemCount,
+          boundingClientRect.width,
+          boundingClientRect.height,
         );
         this.cols = layout.cols;
         this.rows = layout.rows;
@@ -153,7 +160,7 @@ export default {
     },
     onResize(entries: Event[]) {
       for (let e of entries) {
-        if (e.target as HTMLElement === this.root) {
+        if ((e.target as HTMLElement) === this.root) {
           this.updateLayout();
         }
       }
@@ -180,7 +187,8 @@ export default {
 }
 
 .hex polygon {
-  fill: transparent;
+  fill: var(--color, transparent);
+  stroke: var(--color, transparent);
   transition: all ease-out 250ms;
 }
 
