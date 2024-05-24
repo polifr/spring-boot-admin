@@ -69,8 +69,9 @@ describe('Refresh', () => {
   });
 
   it('shows the changed configurations for all instances', async () => {
-    const toggleScopeButton = await screen.getByRole('button', {
-      name: 'Instance',
+    screen.logTestingPlaygroundURL();
+    const toggleScopeButton = screen.getByRole('button', {
+      name: /affects this instance only/i,
     });
     await userEvent.click(toggleScopeButton);
 
