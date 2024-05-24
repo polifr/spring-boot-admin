@@ -1,4 +1,3 @@
-import { http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import auditEventsEndpoint from '@/mocks/instance/auditevents';
@@ -21,9 +20,6 @@ const handler = [
   ...auditEventsEndpoint,
   ...jolokiaEndpoint,
   ...dependenciesEndpoints,
-  http.delete('/applications/:name', null),
-  http.post('/applications/:name/actuator/*', null),
-  http.post('/instances/:instanceId/actuator/*', null),
 ];
 
 export const server = setupServer(...handler);
