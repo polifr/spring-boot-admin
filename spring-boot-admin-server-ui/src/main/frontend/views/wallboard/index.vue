@@ -48,19 +48,19 @@
         </optgroup>
       </select>
 
-      <div class="text-right rounded h-full" v-if="groupNames.length > 1">
+      <div v-if="groupNames.length > 1" class="text-right rounded h-full">
         <sba-button-group>
           <sba-button
             size="base"
-            @click="() => (routerState.sortBy = 'name')"
             :title="t('term.group_by.application')"
+            @click="() => (routerState.sortBy = 'name')"
           >
             <font-awesome-icon icon="list" />
           </sba-button>
           <sba-button
             size="base"
-            @click="() => (routerState.sortBy = 'group')"
             :title="t('term.group_by.group')"
+            @click="() => (routerState.sortBy = 'group')"
           >
             <font-awesome-icon icon="expand" />
           </sba-button>
@@ -276,7 +276,7 @@ function sortApplicationsBy(
       return [application];
     }
   });
-  return items.sort((a: any, b: any) => {
+  return items.sort((a: Application, b: Application) => {
     if (sortingCriterion === 'group') {
       return a.group.localeCompare(b.group);
     } else {
